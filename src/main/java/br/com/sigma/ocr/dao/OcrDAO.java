@@ -5,8 +5,12 @@ import java.io.IOException;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 
 import br.com.sigma.ocr.bean.Documento;
@@ -28,16 +32,13 @@ public class OcrDAO {
 		
         Class.forName("org.postgresql.Driver");
         db = DriverManager.getConnection(url, usr, pwd);
-        //st = db.createStatement();
-        //st.close();
-        //db.close();	
-        //st.executeQuery(sql)
         
 	}
 	
-	public void persisteOCR(List<Documento> documentos){
+	public String persisteOCR(List<Documento> documentos){
+		
+		String resultado = "";
 		try {
-			
 			openConn();
 			PreparedStatement ps = db.prepareStatement("insert into documento values (default,?,?,?,?,?,?,?)");
 			for (Documento documento : documentos) {
@@ -51,17 +52,13 @@ public class OcrDAO {
 				ps.setInt(7, documento.getNumeroFolha());
 				ps.executeUpdate();
 			} 
+			ps.close();
+			resultado = getDataHora() + " - Gravação finalizada \n";
+			System.out.println(resultado);
 			
-			System.out.println("Gravação realizada!");
-			ps.close(); 
-			
-		} catch (FileNotFoundException e) {
-			e.printStackTrace();
-		} catch (ClassNotFoundException e) {
-			e.printStackTrace();
-		} catch (IOException e) {
-			e.printStackTrace();
-		} catch (SQLException e) {
+		} catch (Exception e) {
+			resultado = getDataHora() + " - Houve uma falha na gravação. Verifique o Log";
+			System.out.println(resultado);
 			e.printStackTrace();
 		}finally{
 			try {
@@ -70,6 +67,51 @@ public class OcrDAO {
 				e.printStackTrace();
 			}
 		}
+		return resultado;
 	}
+	
+	
+	public List<Documento> pesquisaDocumento(String palavra){
+		
+		List<Documento> documentoList = new ArrayList<Documento>();
+
+		try {
+			openConn();
+			PreparedStatement ps = db.prepareStatement("select * from documento where resultado like ?");
+			ps.setString(1, "%"+ palavra +"%");
+						
+			ResultSet rs = ps.executeQuery();
+			
+			while (rs.next()){
+		      Documento doc = new Documento();
+		      doc.setArmario(rs.getString("armario"));
+		      doc.setCaminhoLogico(rs.getString("caminho_logico"));
+		      doc.setGaveta(rs.getInt("gaveta"));
+		      doc.setNumeroDocumento(rs.getString("numero_documento"));
+		      doc.setNumeroFolha(rs.getInt("numero_folha"));
+		      doc.setPasta(rs.getString("pasta"));
+		      doc.setResultado(rs.getString("resultado"));
+		      documentoList.add(doc);
+		    }
+			ps.close();
+			
+		} catch (Exception e) {
+			e.printStackTrace();
+		}finally{
+			try {
+				db.close();
+			} catch (SQLException e) {
+				e.printStackTrace();
+			}
+		}
+		return documentoList;
+	}
+	
+	private String getDataHora()  {
+        Date d = new Date();
+        SimpleDateFormat sdf = new SimpleDateFormat("dd/MM/yyyy HH:mm:ss");
+        return(sdf.format(d));
+	}
+		
 	
 }
