@@ -42,7 +42,7 @@ import br.com.sigma.ocr.layout.NegociosTableModel;
  * @author adriano.dib
  * @since 11/02/2017
  */
-public class LetsGo extends JFrame{
+public class OcrApp extends JFrame{
 	
 	private static final long serialVersionUID = 1L;
 	private File diretorio;
@@ -79,7 +79,7 @@ public class LetsGo extends JFrame{
 	
 	public static void main(String[] args){
 		Locale.setDefault(new Locale("pt", "BR"));
-		LetsGo lets = new LetsGo();
+		OcrApp lets = new OcrApp();
 		lets.inicializaLog();
 		lets.preparaJanela();
 		lets.inicializaTable();
@@ -101,8 +101,8 @@ public class LetsGo extends JFrame{
 		//textFieldLog = new JTextField();
 		listaResultado = new ArrayList<Documento>();
 		
-		btExecutarOCR = new JButton("Executar OCR");
 		btAbrirArquivo = new JButton("Selecionar Pasta");
+		btExecutarOCR = new JButton("Executar OCR");
 		btPesquisa = new JButton("Pesquisar");
 		
 		labelArmario = new JLabel("Armário:");
@@ -143,7 +143,7 @@ public class LetsGo extends JFrame{
 		janela = new JFrame("Ferramenta de OCR da Sigma");
 		janela.add(painelPrincipal);
 		janela.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-		janela.setSize(800, 500);
+		janela.setSize(900, 500);
 		janela.setLocationRelativeTo(null);
 		janela.setVisible(true);
 	}

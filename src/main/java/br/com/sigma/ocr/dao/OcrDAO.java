@@ -34,8 +34,8 @@ public class OcrDAO {
 		String url = "jdbc:postgresql://localhost/OCR?charSet=UTF-8";
 		//String url = "jdbc:postgresql://192.168.40.97/OCR?charSet=UTF-8";
         String usr = "postgres";
-        //String pwd = "senha123";		
-        String pwd = "onairdaa";		
+        String pwd = "senha123";		
+        		
 		
         Class.forName("org.postgresql.Driver");
         db = DriverManager.getConnection(url, usr, pwd);
