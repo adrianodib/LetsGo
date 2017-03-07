@@ -1,41 +1,41 @@
 package br.com.sigma.ocr;
 
 import java.awt.Color;
+import java.awt.Desktop;
 import java.awt.GridLayout;
 import java.awt.Point;
-import java.awt.Rectangle;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.io.File;
 import java.io.IOException;
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.List;
 import java.util.Locale;
-import java.awt.Desktop;
+import java.util.logging.ConsoleHandler;
+import java.util.logging.FileHandler;
+import java.util.logging.Handler;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+import java.util.logging.SimpleFormatter;
 
-import javax.print.attribute.TextSyntax;
-import javax.swing.BorderFactory;
-import javax.swing.BoxLayout;
 import javax.swing.JButton;
 import javax.swing.JFileChooser;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
-import javax.swing.JProgressBar;
 import javax.swing.JScrollPane;
 import javax.swing.JTable;
 import javax.swing.JTextField;
 import javax.swing.border.LineBorder;
-import javax.swing.BoxLayout;
+import javax.swing.text.PlainDocument;
 
 import com.asprise.ocr.Ocr;
 
 import br.com.sigma.ocr.bean.Documento;
 import br.com.sigma.ocr.dao.OcrDAO;
+import br.com.sigma.ocr.layout.MyIntFilter;
 import br.com.sigma.ocr.layout.NegociosTableModel;
 
 /**
@@ -51,70 +51,97 @@ public class LetsGo extends JFrame{
 	private JButton btExecutarOCR;
 	private JButton btAbrirArquivo;
 	private JButton btPesquisa;
-	private JPanel painel;
+	
+	private JPanel painelPrincipal;
 	private JPanel painelBotoes;
-	private JPanel painelLog;
+	//private JPanel painelLog;
 	private JLabel labelPath;
 	private JLabel labelResultado;
 	private JLabel labelArmario;
 	private JLabel labelGaveta;
 	private JLabel labelPasta;
+	
 	private JTextField textFieldPesquisa;
-	private JTextField textFieldLog;
+	//private JTextField textFieldLog;
 	private List<Documento> listaResultado;
-	private JProgressBar jProgressBar; 
+	//private JProgressBar jProgressBar; 
 	private JTable table; 	
 	private Desktop desktop;
-    private Desktop.Action action = Desktop.Action.OPEN;
     private Documento doc;
+    private JPanel painelLabels;
+	
+    private JTextField textFieldArmario;
+	private JTextField textFieldGaveta;
+	private JTextField textFieldPasta;
+	private Desktop.Action action;
+	
+	private static final Logger logger = Logger.getLogger(Logger.GLOBAL_LOGGER_NAME);
 	
 	public static void main(String[] args){
 		Locale.setDefault(new Locale("pt", "BR"));
 		LetsGo lets = new LetsGo();
+		lets.inicializaLog();
 		lets.preparaJanela();
 		lets.inicializaTable();
 		lets.inicializaListeners();
 	}
 	
 	private void preparaJanela() {
+		
+		action = Desktop.Action.OPEN;
 
 		//jProgressBar = new JProgressBar(); 
 		desktop = Desktop.getDesktop();
 		doc = new Documento();
 		
 		labelPath = new JLabel();
-
-		labelArmario = new JLabel();
-		labelGaveta = new JLabel();
-		labelPasta = new JLabel();
+		
 		textFieldPesquisa = new JTextField(20);
 		labelResultado = new JLabel();
-		textFieldLog = new JTextField();
+		//textFieldLog = new JTextField();
 		listaResultado = new ArrayList<Documento>();
 		
 		btExecutarOCR = new JButton("Executar OCR");
 		btAbrirArquivo = new JButton("Selecionar Pasta");
 		btPesquisa = new JButton("Pesquisar");
 		
-		painel = new JPanel();
-		painel.add(labelPath);
-		painel.add(textFieldPesquisa);
-		painel.add(btPesquisa);
-		painel.add(labelResultado);
+		labelArmario = new JLabel("Armário:");
+		labelGaveta = new JLabel("Gaveta:");
+		labelPasta = new JLabel("Pasta:");
+		
+		textFieldArmario = new JTextField(3);
+		textFieldGaveta = new JTextField(3);
+		textFieldPasta = new JTextField(3);
+		
+		painelLabels = new JPanel();
+		painelLabels.add(labelArmario);
+		painelLabels.add(textFieldArmario);
+		painelLabels.add(labelPasta);
+		painelLabels.add(textFieldPasta);
+		painelLabels.add(labelGaveta);
+		painelLabels.add(textFieldGaveta);
+		
+		painelPrincipal = new JPanel();
+		
+		painelPrincipal.add(labelPath);
+		painelPrincipal.add(textFieldPesquisa);
+		painelPrincipal.add(btPesquisa);
+		painelPrincipal.add(labelResultado);
 		//painel.add(jProgressBar);
 
 		painelBotoes = new JPanel(new GridLayout());
 		painelBotoes.add(btExecutarOCR);
 		painelBotoes.add(btAbrirArquivo);
 		
-		painel.add(painelBotoes);
+		painelPrincipal.add(painelBotoes);
+		painelPrincipal.add(painelLabels);
 		
 		//painelLog = new JPanel(new GridLayout());
 		//painelLog.add(textFieldLog);
 		//painel.add(painelLog);
 		
 		janela = new JFrame("Ferramenta de OCR da Sigma");
-		janela.add(painel);
+		janela.add(painelPrincipal);
 		janela.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		janela.setSize(800, 500);
 		janela.setLocationRelativeTo(null);
@@ -133,6 +160,7 @@ public class LetsGo extends JFrame{
 					File file = fileChooser.getCurrentDirectory();
 					diretorio = new File(file.getAbsolutePath());
 					labelPath.setText("Caminho escolhido: " + file.getAbsolutePath());
+					logger.log(Level.INFO, "Caminho escolhido: " + file.getAbsolutePath(), e);
 					arquivos = diretorio.listFiles();
 				} 				
 			}
@@ -148,7 +176,11 @@ public class LetsGo extends JFrame{
 			public void actionPerformed(ActionEvent e) {
 				OcrDAO ocrDao = new OcrDAO();
 				String textoPesquisa = textFieldPesquisa.getText();
-				listaResultado = ocrDao.pesquisaDocumento(textoPesquisa);
+				try {
+					listaResultado = ocrDao.pesquisaDocumento(textoPesquisa);
+				} catch (Exception e1) {
+					logger.log(Level.SEVERE, e1.getMessage(), e1);
+				}
 				NegociosTableModel ntm = new NegociosTableModel(listaResultado);
 			    table.setModel(ntm);				
 			}
@@ -190,9 +222,10 @@ public class LetsGo extends JFrame{
 					String s = ocr.recognize(new File[] { new File(file.getAbsolutePath()) }, Ocr.RECOGNIZE_TYPE_ALL, Ocr.OUTPUT_FORMAT_PLAINTEXT);
 					Documento doc = populaDocumento(file, s);
 					listaDoc.add(doc);
+					logger.log(Level.INFO, "Documento processado: " + doc.getNumeroDocumento() + " - Folha: " + doc.getNumeroFolha());
+					System.out.println("Documento processado: " + doc.getNumeroDocumento() + " - Folha: " + doc.getNumeroFolha());
 					//atualizaBarraProgresso(jProgressBar.getValue()+1 );
 				}
-				
 				OcrDAO ocrDao = new OcrDAO();
 				resultado = ocrDao.persisteOCR(listaDoc);
 				labelPath.setText(resultado);
@@ -200,6 +233,7 @@ public class LetsGo extends JFrame{
 			 
 		} catch (Exception e){
 			e.printStackTrace();
+			logger.log(Level.SEVERE, e.getMessage(), e);
 		} finally {
 			//atualizaBarraProgresso(0);
 			ocr.stopEngine();	
@@ -211,9 +245,14 @@ public class LetsGo extends JFrame{
 		Documento doc = new Documento();
 		doc.setResultado(s);
 		doc.setCaminhoLogico(file.getAbsolutePath());
-		doc.setArmario("1");
-		doc.setGaveta(1);
-		doc.setPasta("1");
+		
+		doc.setArmario(textFieldArmario.getText());
+		
+		PlainDocument plainDoc = (PlainDocument) textFieldGaveta.getDocument();
+		plainDoc.setDocumentFilter(new MyIntFilter());
+		
+		doc.setGaveta(Integer.valueOf(textFieldGaveta.getText()));
+		doc.setPasta(textFieldPasta.getText());
 
 		//System.out.println("Iniciando a conversão do número da folha");
 		
@@ -225,7 +264,7 @@ public class LetsGo extends JFrame{
 		Integer numFolha = 0;
 		if (!folha.isEmpty()) {
 			numFolha = Integer.valueOf(folha);
-			System.out.println("Número da folha: " + numFolha);
+			//System.out.println("Número da folha: " + numFolha);
 		}
 		//System.out.println("Encerrando a conversão do número da folha");
 		
@@ -247,16 +286,13 @@ public class LetsGo extends JFrame{
 		table.setBorder(new LineBorder(Color.black));
 		table.setGridColor(Color.black);
 		table.setShowGrid(true);		
-		//table.setSize(750, 450);
-		table.setSize(1000, 1000);
-		
+		table.setSize(750, 450);
+				
 		JScrollPane scroll = new JScrollPane(); 
 		scroll.getViewport().setBorder(null);
 		scroll.getViewport().add(table); 
-		//scroll.setSize(450, 450);	
-		scroll.setSize(1000, 1000);	
-		painel.add(scroll);
-
+		scroll.setSize(450, 450);	
+		painelPrincipal.add(scroll);
 	}
 
     /**
@@ -286,9 +322,37 @@ public class LetsGo extends JFrame{
             }
         } catch (IOException ioe) {
             ioe.printStackTrace();
-            System.out.println("Cannot perform the given operation to the " + file + " file");
+			logger.log(Level.SEVERE, "Não deu certo a operação para o " + file + " arquivo", ioe); 
         }
     }
+	
+	public void inicializaLog() {
+
+        Handler console = new ConsoleHandler();
+        Handler file;
+        
+		try {
+			file = new FileHandler("C:\\temp\\scanner.txt");
+ 	        //Define que no console aparece apenas log com nível superior à warning
+	        console.setLevel(Level.WARNING);
+	        
+	        //No arquivo deve aparecer o log de qualquer nível
+	        file.setLevel(Level.ALL);
+	        
+	        //Define o formato de output do ficheiro como XML
+	        file.setFormatter(new SimpleFormatter());
+	        //Adiciona os handlers para ficheiro e console
+	        logger.addHandler(file);
+	        logger.addHandler(console);
+	        //Ignora os Handlers definidos no Logger Global
+	        logger.setUseParentHandlers(false);
+	        
+		} catch (Exception e) {
+			logger.log(Level.SEVERE, e.getMessage(), e); 
+		}	        
+	}	
+	
+	
 	/*
 	public String path(){
 		
@@ -304,9 +368,7 @@ public class LetsGo extends JFrame{
 			return "dialogo cancelado"; 
 		}
 	}
-	*/		
-	
-	/*
+			
 	private void configuraBarraProgresso(int maxValue){
 		jProgressBar.setBounds(new Rectangle(20, 20, 200, 20));
 		jProgressBar.setMinimum(0);
